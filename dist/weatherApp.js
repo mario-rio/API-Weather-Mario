@@ -12,12 +12,21 @@ document.getElementById('city-form').addEventListener('submit', function(event) 
 });
 
 function obtenirTemps(ciutat) {
+    netejarErrors();
     fetch(`https://api.weatherapi.com/v1/current.json?q=${ciutat}&key=${API_KEY}`)
-        .then(response => response.json())
-        .then(data => mostrarTemps(data, ciutat));
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('No s\'ha pogut obtenir la informació del temps per a aquesta ciutat.');
+            }
+            return response.json();
+        })
+        .then(data => mostrarTemps(data, ciutat))
+        .catch(error => mostrarError(ciutat, error.message));
 }
 
+
 function mostrarTemps(data, ciutat) {
+    netejarErrors(); 
     const divCiutat = document.createElement('div');
     divCiutat.innerHTML = `
         <h3 class="text-xl cursor-pointer" onclick="mostrarDetalls('${ciutat}')">${data.location.name}, ${data.location.country}</h3>
@@ -30,6 +39,14 @@ function mostrarTemps(data, ciutat) {
     document.getElementById('city-list').appendChild(divCiutat);
 }
 
+function mostrarError(ciutat, missatge) {
+    netejarErrors(); 
+    const divError = document.createElement('div');
+    divError.classList.add('text-red-500', 'text-sm', 'mb-2', 'error-message');
+    divError.textContent = `Error en obtenir les dades per a ${ciutat}: ${missatge}`;
+    document.getElementById('city-list').appendChild(divError);
+}
+
 function canviarCiutat(antigaCiutat) {
     const novaCiutat = document.getElementById(`${antigaCiutat}-input`).value;
     if (novaCiutat && !ciutats.includes(novaCiutat)) {
@@ -39,14 +56,22 @@ function canviarCiutat(antigaCiutat) {
 }
 
 function eliminarCiutat(ciutat) {
+    netejarErrors();
     ciutats = ciutats.filter(c => c !== ciutat);
     refrescarCiutats();
 }
 
+
 function refrescarCiutats() {
+    netejarErrors(); 
     const llistaCiutats = document.getElementById('city-list');
     while (llistaCiutats.firstChild) {
         llistaCiutats.removeChild(llistaCiutats.firstChild);
     }
     ciutats.forEach(ciutat => obtenirTemps(ciutat));
+}
+
+function netejarErrors() {
+    const errors = document.querySelectorAll('.error-message');
+    errors.forEach(error => error.remove());
 }
